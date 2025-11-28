@@ -1,32 +1,54 @@
-import { History, Search, X, ArrowLeft } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { History, Search, ArrowLeft } from 'lucide-react';
 import { HistoricoItem } from '../types';
-import { useState } from 'react';
+import { db } from '../firebase';
+import { collection, onSnapshot, query, where, getDocs } from 'firebase/firestore';
 
 interface HistoricoAlteracoesProps {
-  historico: HistoricoItem[];
   onClose: () => void;
 }
 
-export function HistoricoAlteracoes({ historico, onClose }: HistoricoAlteracoesProps) {
+export function HistoricoAlteracoes({ onClose }: HistoricoAlteracoesProps) {
+  const [historico, setHistorico] = useState<HistoricoItem[]>([]);
+  const [filteredHistorico, setFilteredHistorico] = useState<HistoricoItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterUser, setFilterUser] = useState<string>('todos');
+  const [usuarios, setUsuarios] = useState<string[]>([]);
 
-  // Filtrar histórico
-  const usuarios = Array.from(new Set(historico.map(h => h.usuario)));
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "historico"), (snapshot) => {
+      const historicoData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as HistoricoItem[];
+      const sortedData = historicoData.sort((a, b) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime());
+      setHistorico(sortedData);
+      setFilteredHistorico(sortedData);
 
-  const historicoFiltrado = historico
-    .filter(item => {
-      const matchSearch = searchTerm === '' || 
-        item.condominioNome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.campo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.valorAnterior.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.valorNovo.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchUser = filterUser === 'todos' || item.usuario === filterUser;
-      
-      return matchSearch && matchUser;
-    })
-    .sort((a, b) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime());
+      const uniqueUsers = Array.from(new Set(historicoData.map(h => h.usuario)));
+      setUsuarios(uniqueUsers);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    let result = historico;
+
+    if (filterUser !== 'todos') {
+      result = result.filter(item => item.usuario === filterUser);
+    }
+
+    if (searchTerm) {
+      const lowerCaseSearch = searchTerm.toLowerCase();
+      result = result.filter(item => 
+        item.condominioNome.toLowerCase().includes(lowerCaseSearch) ||
+        item.campo.toLowerCase().includes(lowerCaseSearch) ||
+        (item.valorAnterior && item.valorAnterior.toLowerCase().includes(lowerCaseSearch)) ||
+        (item.valorNovo && item.valorNovo.toLowerCase().includes(lowerCaseSearch))
+      );
+    }
+
+    setFilteredHistorico(result);
+
+  }, [searchTerm, filterUser, historico]);
 
   return (
     <div className="fixed inset-0 bg-white dark:bg-gray-900 z-50 overflow-y-auto">
@@ -44,7 +66,7 @@ export function HistoricoAlteracoes({ historico, onClose }: HistoricoAlteracoesP
               <div className="flex-1">
                 <h1 className="text-emerald-900 dark:text-gray-100">Histórico de Alterações</h1>
                 <p className="text-emerald-600 dark:text-gray-400">
-                  {historicoFiltrado.length} {historicoFiltrado.length === 1 ? 'alteração encontrada' : 'alterações encontradas'}
+                  {filteredHistorico.length} {filteredHistorico.length === 1 ? 'alteração encontrada' : 'alterações encontradas'}
                 </p>
               </div>
             </div>
@@ -81,7 +103,7 @@ export function HistoricoAlteracoes({ historico, onClose }: HistoricoAlteracoesP
 
           {/* Lista de Histórico */}
           <div className="space-y-4">
-            {historicoFiltrado.length === 0 ? (
+            {filteredHistorico.length === 0 ? (
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-emerald-100 dark:border-gray-700 p-12 text-center">
                 <History className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
                 <p className="text-gray-600 dark:text-gray-400">Nenhuma alteração encontrada</p>
@@ -98,7 +120,7 @@ export function HistoricoAlteracoes({ historico, onClose }: HistoricoAlteracoesP
                 )}
               </div>
             ) : (
-              historicoFiltrado.map((item) => (
+              filteredHistorico.map((item) => (
                 <div
                   key={item.id}
                   className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-emerald-100 dark:border-gray-700 p-6"

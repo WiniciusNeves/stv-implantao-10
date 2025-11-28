@@ -1,61 +1,75 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-export type UserRole = 'ADM' | 'MONITORAMENTO' | 'TECNICO' | 'ANALISADOR';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+  User as FirebaseUser
+} from 'firebase/auth';
+import { auth } from '../firebase'; // Removed 'db' import, it's no longer used
+
+// Corrected the role to match the data 'TECNICO'
+export type UserRole = 'ADM' | 'MONITORAMENTO' | 'TECNICO' | 'ANALISADOR' | 'USER';
 
 export interface User {
-  username: string;
+  uid: string;
+  email: string | null;
   role: UserRole;
+  displayName?: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (username: string, password: string) => boolean;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Usuários pré-configurados
-const USERS = [
-  { username: 'marcos', password: '@marcos123', role: 'ADM' as UserRole },
-  { username: 'lino', password: '@lino123', role: 'MONITORAMENTO' as UserRole },
-  { username: 'lucas', password: '@lucas123', role: 'TECNICO' as UserRole },
-  { username: 'tiagolemos', password: '@tiagolemos123', role: 'ANALISADOR' as UserRole },
-  { username: 'roger', password: '@roger123', role: 'ANALISADOR' as UserRole },
-];
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+      if (firebaseUser) {
+        // User is signed in, get their role from custom claims in the ID token.
+        // Force a refresh of the token to get the latest claims.
+        const idTokenResult = await firebaseUser.getIdTokenResult(true);
+        
+        const userData: User = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName || undefined,
+          // Cast the claim to UserRole and provide a default fallback role.
+          role: (idTokenResult.claims.role as UserRole) || 'USER',
+        };
+        setUser(userData);
+      } else {
+        // User is signed out
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, []);
 
-  const login = (username: string, password: string): boolean => {
-    const foundUser = USERS.find(
-      (u) => u.username === username && u.password === password
-    );
-
-    if (foundUser) {
-      const userData = { username: foundUser.username, role: foundUser.role };
-      setUser(userData);
-      localStorage.setItem('currentUser', JSON.stringify(userData));
-      return true;
-    }
-    return false;
+  const login = async (email: string, password: string) => {
+    await signInWithEmailAndPassword(auth, email, password);
+    // onAuthStateChanged will handle setting the user state.
   };
 
   const logout = () => {
-    setUser(null);
-    localStorage.removeItem('currentUser');
+    signOut(auth);
+    // onAuthStateChanged will handle setting the user state to null.
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
-      {children}
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
+      {!loading && children}
     </AuthContext.Provider>
   );
 }

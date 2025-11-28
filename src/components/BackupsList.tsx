@@ -1,23 +1,42 @@
+import { useState, useEffect } from 'react';
 import { Database, Search, ArrowLeft, Eye, Trash2, Building2, Calendar } from 'lucide-react';
 import { Condominio } from '../types';
-import { useState } from 'react';
+import { db } from '../firebase';
+import { collection, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 
 interface BackupsListProps {
-  backups: Condominio[];
   onViewBackup: (backup: Condominio) => void;
   onDeleteBackup: (id: string) => void;
   onClose: () => void;
 }
 
-export function BackupsList({ backups, onViewBackup, onDeleteBackup, onClose }: BackupsListProps) {
+export function BackupsList({ onViewBackup, onDeleteBackup, onClose }: BackupsListProps) {
+  const [backups, setBackups] = useState<Condominio[]>([]);
+  const [filteredBackups, setFilteredBackups] = useState<Condominio[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const backupsFiltrados = backups
-    .filter(backup => 
-      searchTerm === '' || 
-      backup.nomeCondominio.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => new Date(b.dataImplantacao || '').getTime() - new Date(a.dataImplantacao || '').getTime());
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "backups"), (snapshot) => {
+      const backupsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Condominio[];
+      const sortedData = backupsData.sort((a, b) => new Date(b.atualizadoEm || 0).getTime() - new Date(a.atualizadoEm || 0).getTime());
+      setBackups(sortedData);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    let result = backups;
+
+    if (searchTerm) {
+      const lowerCaseSearch = searchTerm.toLowerCase();
+      result = result.filter(backup =>
+        backup.nomeCondominio.toLowerCase().includes(lowerCaseSearch)
+      );
+    }
+
+    setFilteredBackups(result);
+  }, [searchTerm, backups]);
 
   return (
     <div className="fixed inset-0 bg-white dark:bg-gray-900 z-50 overflow-y-auto">
@@ -35,7 +54,7 @@ export function BackupsList({ backups, onViewBackup, onDeleteBackup, onClose }: 
               <div className="flex-1">
                 <h1 className="text-emerald-900 dark:text-gray-100">Backups</h1>
                 <p className="text-emerald-600 dark:text-gray-400">
-                  {backupsFiltrados.length} {backupsFiltrados.length === 1 ? 'backup encontrado' : 'backups encontrados'}
+                  {filteredBackups.length} {filteredBackups.length === 1 ? 'backup encontrado' : 'backups encontrados'}
                 </p>
               </div>
             </div>
@@ -57,7 +76,7 @@ export function BackupsList({ backups, onViewBackup, onDeleteBackup, onClose }: 
 
           {/* Lista de Backups */}
           <div className="space-y-4">
-            {backupsFiltrados.length === 0 ? (
+            {filteredBackups.length === 0 ? (
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-emerald-100 dark:border-gray-700 p-12 text-center">
                 <Database className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
                 <p className="text-gray-600 dark:text-gray-400">Nenhum backup encontrado</p>
@@ -71,7 +90,7 @@ export function BackupsList({ backups, onViewBackup, onDeleteBackup, onClose }: 
                 )}
               </div>
             ) : (
-              backupsFiltrados.map((backup) => (
+              filteredBackups.map((backup) => (
                 <div
                   key={backup.id}
                   className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-emerald-100 dark:border-gray-700 p-6"
@@ -85,34 +104,19 @@ export function BackupsList({ backups, onViewBackup, onDeleteBackup, onClose }: 
                         </h4>
                       </div>
                       <p className="text-emerald-600 dark:text-gray-400">
-                        Backup do condomínio
+                        Backup do condomínio concluído
                       </p>
                     </div>
                     <div className="text-right">
                       <div className="flex items-center gap-2 justify-end mb-1">
                         <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                         <p className="text-emerald-700 dark:text-gray-300">
-                          {new Date(backup.dataImplantacao || '').toLocaleDateString('pt-BR')}
+                          {new Date(backup.atualizadoEm || '').toLocaleDateString('pt-BR')}
                         </p>
                       </div>
                       <p className="text-emerald-600 dark:text-gray-400">
-                        {new Date(backup.dataImplantacao || '').toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(backup.atualizadoEm || '').toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                       </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-emerald-50 dark:bg-gray-700/50 rounded-xl">
-                    <div>
-                      <p className="text-emerald-600 dark:text-gray-400 mb-1">Status:</p>
-                      <p className="text-emerald-900 dark:text-gray-100">{backup.status || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-emerald-600 dark:text-gray-400 mb-1">Ramais:</p>
-                      <p className="text-emerald-900 dark:text-gray-100">{backup.ramais.join(', ') || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-emerald-600 dark:text-gray-400 mb-1">CFTV:</p>
-                      <p className="text-emerald-900 dark:text-gray-100">{backup.cftv || '-'}</p>
                     </div>
                   </div>
 
@@ -128,11 +132,7 @@ export function BackupsList({ backups, onViewBackup, onDeleteBackup, onClose }: 
                       <span>Visualizar</span>
                     </button>
                     <button
-                      onClick={() => {
-                        if (window.confirm(`Tem certeza que deseja excluir o backup do condomínio "${backup.nomeCondominio}"?`)) {
-                          onDeleteBackup(backup.id);
-                        }
-                      }}
+                      onClick={() => onDeleteBackup(backup.id)}
                       className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all shadow-md hover:shadow-lg"
                     >
                       <Trash2 className="w-4 h-4" />

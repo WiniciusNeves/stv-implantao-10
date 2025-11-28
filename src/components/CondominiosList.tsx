@@ -14,8 +14,11 @@ export function CondominiosList({ condominios, onEdit, onDelete }: CondominiosLi
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('TODOS');
 
-  const canEdit = user?.role !== 'ANALISADOR';
-  const canDelete = user?.role === 'ADM';
+  const isAdm = user?.role === 'ADM';
+  const isAnalisador = user?.role === 'ANALISADOR';
+  
+  const canEdit = isAdm || user?.role === 'MONITORAMENTO' || user?.role === 'TECNICO';
+  const canDelete = isAdm;
 
   const filteredCondominios = condominios.filter(c => {
     const matchesSearch = c.nomeCondominio.toLowerCase().includes(searchTerm.toLowerCase());
@@ -96,7 +99,6 @@ export function CondominiosList({ condominios, onEdit, onDelete }: CondominiosLi
                 key={condominio.id}
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-emerald-100 dark:border-gray-700 p-6 hover:shadow-xl transition-all flex flex-col"
               >
-                {/* Header com ícone e nome */}
                 <div className="text-center mb-4">
                   <div className="w-16 h-16 bg-[#0a6c45] dark:bg-[#7BD955]/20 dark:border dark:border-[#7BD955] rounded-xl flex items-center justify-center shadow-md mx-auto mb-3">
                     <Building2 className="w-8 h-8 text-white dark:text-[#7BD955]" />
@@ -107,9 +109,7 @@ export function CondominiosList({ condominios, onEdit, onDelete }: CondominiosLi
                   </p>
                 </div>
 
-                {/* Informações principais */}
                 <div className="mb-4 flex-1">
-                  {/* 3 Status lado a lado */}
                   <div className="grid grid-cols-3 gap-2 mb-3">
                     <div>
                       <p className="text-[#0a6c45] dark:text-[#7BD955] mb-1 text-xs text-center">Status Geral</p>
@@ -143,7 +143,6 @@ export function CondominiosList({ condominios, onEdit, onDelete }: CondominiosLi
                   </div>
                 </div>
 
-                {/* Link de cadastro */}
                 {condominio.linkCadastro && (
                   <a
                     href={condominio.linkCadastro}
@@ -156,7 +155,6 @@ export function CondominiosList({ condominios, onEdit, onDelete }: CondominiosLi
                   </a>
                 )}
 
-                {/* Actions */}
                 <div className="flex gap-2 pt-4 border-t border-emerald-100 dark:border-gray-700">
                   {canEdit && (
                     <button
@@ -165,7 +163,7 @@ export function CondominiosList({ condominios, onEdit, onDelete }: CondominiosLi
                       title="Editar"
                     >
                       <Edit2 className="w-4 h-4" />
-                      <span>Editar</span>
+                      <span>{isAnalisador ? 'Visualizar' : 'Editar'}</span>
                     </button>
                   )}
                   

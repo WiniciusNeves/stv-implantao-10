@@ -649,18 +649,18 @@ export function CondominioForm({ condominio, onSave, onCancel }: CondominioFormP
                               disabled={!canEditTecnica}
                               className={`relative flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl transition-all duration-300 group overflow-hidden ${
                                 isSelected
-                                  ? 'bg-gradient-to-br from-blue-400 via-blue-600 to-blue-800 shadow-lg shadow-blue-600/40 scale-105 border-2 border-white/30'
-                                  : 'bg-white/60 backdrop-blur-sm border-2 border-blue-200/50 hover:border-blue-400 hover:shadow-md hover:scale-105'
+                                  ? 'bg-gradient-to-br from-[#7BD955] via-[#0a6c45] to-emerald-700 shadow-lg shadow-emerald-600/40 scale-105 border-2 border-white/30'
+                                  : 'bg-white/60 dark:bg-gray-700/60 backdrop-blur-sm border-2 border-emerald-200/50 dark:border-gray-600/50 hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-md hover:scale-105'
                               } ${!canEditTecnica ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                             >
                               {isSelected && (
-                                <div className="absolute inset-0 bg-gradient-to-br from-blue-300/20 via-cyan-300/20 to-blue-700/20 animate-pulse pointer-events-none"></div>
+                                <div className="absolute inset-0 bg-gradient-to-br from-emerald-300/20 via-[#7BD955]/20 to-emerald-700/20 animate-pulse pointer-events-none"></div>
                               )}
-                              <Icon className={`w-5 h-5 relative z-10 ${isSelected ? 'text-white drop-shadow-lg' : 'text-blue-700 group-hover:scale-110'}`} strokeWidth={2.5} />
-                              <span className={`text-[10px] text-center relative z-10 ${isSelected ? 'text-white drop-shadow-sm' : 'text-blue-900'}`}>{label}</span>
+                              <Icon className={`w-5 h-5 relative z-10 ${isSelected ? 'text-white drop-shadow-lg' : 'text-[#0a6c45] dark:text-[#7BD955] group-hover:scale-110'}`} strokeWidth={2.5} />
+                              <span className={`text-[10px] text-center relative z-10 ${isSelected ? 'text-white drop-shadow-sm' : 'text-[#0a6c45] dark:text-[#7BD955]'}`}>{label}</span>
                               {isSelected && (
                                 <div className="absolute top-1 right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center shadow-md z-10 animate-[scaleIn_0.3s_ease-out]">
-                                  <svg className="w-2.5 h-2.5 text-blue-700" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" viewBox="0 0 24 24" stroke="currentColor">
+                                  <svg className="w-2.5 h-2.5 text-[#0a6c45]" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" viewBox="0 0 24 24" stroke="currentColor">
                                     <path d="M5 13l4 4L19 7"></path>
                                   </svg>
                                 </div>
@@ -689,18 +689,18 @@ export function CondominioForm({ condominio, onSave, onCancel }: CondominioFormP
                               disabled={!canEditTecnica}
                               className={`relative flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl transition-all duration-300 group overflow-hidden ${
                                 isSelected
-                                  ? 'bg-gradient-to-br from-blue-400 via-blue-600 to-blue-800 shadow-lg shadow-blue-600/40 scale-105 border-2 border-white/30'
-                                  : 'bg-white/60 backdrop-blur-sm border-2 border-blue-200/50 hover:border-blue-400 hover:shadow-md hover:scale-105'
+                                  ? 'bg-gradient-to-br from-[#7BD955] via-[#0a6c45] to-emerald-700 shadow-lg shadow-emerald-600/40 scale-105 border-2 border-white/30'
+                                  : 'bg-white/60 dark:bg-gray-700/60 backdrop-blur-sm border-2 border-emerald-200/50 dark:border-gray-600/50 hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-md hover:scale-105'
                               } ${!canEditTecnica ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                             >
                               {isSelected && (
-                                <div className="absolute inset-0 bg-gradient-to-br from-blue-300/20 via-cyan-300/20 to-blue-700/20 animate-pulse pointer-events-none"></div>
+                                <div className="absolute inset-0 bg-gradient-to-br from-emerald-300/20 via-[#7BD955]/20 to-emerald-700/20 animate-pulse pointer-events-none"></div>
                               )}
-                              <Icon className={`w-5 h-5 relative z-10 ${isSelected ? 'text-white drop-shadow-lg' : 'text-blue-700 group-hover:scale-110'}`} strokeWidth={2.5} />
-                              <span className={`text-[10px] text-center relative z-10 ${isSelected ? 'text-white drop-shadow-sm' : 'text-blue-900'}`}>{label}</span>
+                              <Icon className={`w-5 h-5 relative z-10 ${isSelected ? 'text-white drop-shadow-lg' : 'text-[#0a6c45] dark:text-[#7BD955] group-hover:scale-110'}`} strokeWidth={2.5} />
+                              <span className={`text-[10px] text-center relative z-10 ${isSelected ? 'text-white drop-shadow-sm' : 'text-[#0a6c45] dark:text-[#7BD955]'}`}>{label}</span>
                               {isSelected && (
                                 <div className="absolute top-1 right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center shadow-md z-10 animate-[scaleIn_0.3s_ease-out]">
-                                  <svg className="w-2.5 h-2.5 text-blue-700" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" viewBox="0 0 24 24" stroke="currentColor">
+                                  <svg className="w-2.5 h-2.5 text-[#0a6c45]" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" viewBox="0 0 24 24" stroke="currentColor">
                                     <path d="M5 13l4 4L19 7"></path>
                                   </svg>
                                 </div>
@@ -729,18 +729,18 @@ export function CondominioForm({ condominio, onSave, onCancel }: CondominioFormP
                               disabled={!canEditTecnica}
                               className={`relative flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl transition-all duration-300 group overflow-hidden ${
                                 isSelected
-                                  ? 'bg-gradient-to-br from-blue-400 via-blue-600 to-blue-800 shadow-lg shadow-blue-600/40 scale-105 border-2 border-white/30'
-                                  : 'bg-white/60 backdrop-blur-sm border-2 border-blue-200/50 hover:border-blue-400 hover:shadow-md hover:scale-105'
+                                  ? 'bg-gradient-to-br from-[#7BD955] via-[#0a6c45] to-emerald-700 shadow-lg shadow-emerald-600/40 scale-105 border-2 border-white/30'
+                                  : 'bg-white/60 dark:bg-gray-700/60 backdrop-blur-sm border-2 border-emerald-200/50 dark:border-gray-600/50 hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-md hover:scale-105'
                               } ${!canEditTecnica ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                             >
                               {isSelected && (
-                                <div className="absolute inset-0 bg-gradient-to-br from-blue-300/20 via-cyan-300/20 to-blue-700/20 animate-pulse pointer-events-none"></div>
+                                <div className="absolute inset-0 bg-gradient-to-br from-emerald-300/20 via-[#7BD955]/20 to-emerald-700/20 animate-pulse pointer-events-none"></div>
                               )}
-                              <Icon className={`w-5 h-5 relative z-10 ${isSelected ? 'text-white drop-shadow-lg' : 'text-blue-700 group-hover:scale-110'}`} strokeWidth={2.5} />
-                              <span className={`text-[10px] text-center relative z-10 ${isSelected ? 'text-white drop-shadow-sm' : 'text-blue-900'}`}>{label}</span>
+                              <Icon className={`w-5 h-5 relative z-10 ${isSelected ? 'text-white drop-shadow-lg' : 'text-[#0a6c45] dark:text-[#7BD955] group-hover:scale-110'}`} strokeWidth={2.5} />
+                              <span className={`text-[10px] text-center relative z-10 ${isSelected ? 'text-white drop-shadow-sm' : 'text-[#0a6c45] dark:text-[#7BD955]'}`}>{label}</span>
                               {isSelected && (
                                 <div className="absolute top-1 right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center shadow-md z-10 animate-[scaleIn_0.3s_ease-out]">
-                                  <svg className="w-2.5 h-2.5 text-blue-700" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" viewBox="0 0 24 24" stroke="currentColor">
+                                  <svg className="w-2.5 h-2.5 text-[#0a6c45]" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" viewBox="0 0 24 24" stroke="currentColor">
                                     <path d="M5 13l4 4L19 7"></path>
                                   </svg>
                                 </div>
@@ -769,18 +769,18 @@ export function CondominioForm({ condominio, onSave, onCancel }: CondominioFormP
                               disabled={!canEditTecnica}
                               className={`relative flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl transition-all duration-300 group overflow-hidden ${
                                 isSelected
-                                  ? 'bg-gradient-to-br from-blue-400 via-blue-600 to-blue-800 shadow-lg shadow-blue-600/40 scale-105 border-2 border-white/30'
-                                  : 'bg-white/60 backdrop-blur-sm border-2 border-blue-200/50 hover:border-blue-400 hover:shadow-md hover:scale-105'
+                                  ? 'bg-gradient-to-br from-[#7BD955] via-[#0a6c45] to-emerald-700 shadow-lg shadow-emerald-600/40 scale-105 border-2 border-white/30'
+                                  : 'bg-white/60 dark:bg-gray-700/60 backdrop-blur-sm border-2 border-emerald-200/50 dark:border-gray-600/50 hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-md hover:scale-105'
                               } ${!canEditTecnica ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                             >
                               {isSelected && (
-                                <div className="absolute inset-0 bg-gradient-to-br from-blue-300/20 via-cyan-300/20 to-blue-700/20 animate-pulse pointer-events-none"></div>
+                                <div className="absolute inset-0 bg-gradient-to-br from-emerald-300/20 via-[#7BD955]/20 to-emerald-700/20 animate-pulse pointer-events-none"></div>
                               )}
-                              <Icon className={`w-5 h-5 relative z-10 ${isSelected ? 'text-white drop-shadow-lg' : 'text-blue-700 group-hover:scale-110'}`} strokeWidth={2.5} />
-                              <span className={`text-[10px] text-center relative z-10 ${isSelected ? 'text-white drop-shadow-sm' : 'text-blue-900'}`}>{label}</span>
+                              <Icon className={`w-5 h-5 relative z-10 ${isSelected ? 'text-white drop-shadow-lg' : 'text-[#0a6c45] dark:text-[#7BD955] group-hover:scale-110'}`} strokeWidth={2.5} />
+                              <span className={`text-[10px] text-center relative z-10 ${isSelected ? 'text-white drop-shadow-sm' : 'text-[#0a6c45] dark:text-[#7BD955]'}`}>{label}</span>
                               {isSelected && (
                                 <div className="absolute top-1 right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center shadow-md z-10 animate-[scaleIn_0.3s_ease-out]">
-                                  <svg className="w-2.5 h-2.5 text-blue-700" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" viewBox="0 0 24 24" stroke="currentColor">
+                                  <svg className="w-2.5 h-2.5 text-[#0a6c45]" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" viewBox="0 0 24 24" stroke="currentColor">
                                     <path d="M5 13l4 4L19 7"></path>
                                   </svg>
                                 </div>

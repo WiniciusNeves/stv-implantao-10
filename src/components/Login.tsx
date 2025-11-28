@@ -1,26 +1,30 @@
+
 import { useState } from 'react';
 import { useAuth } from './AuthContext';
-import { Building2, Lock, User, AlertCircle } from 'lucide-react';
-import logoImage from 'figma:asset/ff5bca3deeca0a320525d259911cf9ed71c08bcf.png';
+import { Mail, Lock, AlertCircle } from 'lucide-react';
+import logoImage from '../assets/logo.png';
 
 export function Login() {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const { login } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!username || !password) {
+    if (!email || !password) {
       setError('Por favor, preencha todos os campos');
       return;
     }
 
-    const success = login(username, password);
-    if (!success) {
-      setError('Usuário ou senha inválidos');
+    try {
+      await login(email, password);
+      // The AuthProvider will redirect on successful login
+    } catch (error) {
+      setError('Email ou senha inválidos. Por favor, tente novamente.');
+      console.error("Login error:", error);
     }
   };
 
@@ -43,22 +47,22 @@ export function Login() {
         {/* Login Form */}
         <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-3xl shadow-2xl p-6 md:p-8 border border-white/20 dark:border-gray-700/50">
           <form onSubmit={handleSubmit} className="space-y-5 md:space-y-6">
-            {/* Username Field */}
+            {/* Email Field */}
             <div>
-              <label htmlFor="username" className="block text-gray-700 dark:text-gray-200 mb-2 ml-1">
-                Usuário
+              <label htmlFor="email" className="block text-gray-700 dark:text-gray-200 mb-2 ml-1">
+                Email
               </label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-all group-focus-within:scale-110">
-                  <User className="h-5 w-5 text-[#7BD955] dark:text-[#7BD955]" />
+                  <Mail className="h-5 w-5 text-[#7BD955] dark:text-[#7BD955]" />
                 </div>
                 <input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-12 pr-4 py-3.5 md:py-4 border-2 border-gray-200 dark:border-gray-600 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#7BD955] focus:border-[#7BD955] transition-all bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
-                  placeholder="Digite seu usuário"
+                  placeholder="Digite seu email"
                 />
               </div>
             </div>
@@ -99,19 +103,6 @@ export function Login() {
               <span className="drop-shadow-md">Entrar</span>
             </button>
           </form>
-
-          {/* Helper Text */}
-          <div className="mt-6 p-4 md:p-5 bg-gradient-to-br from-[#7BD955]/10 to-emerald-100/50 dark:from-[#7BD955]/10 dark:to-emerald-900/20 rounded-2xl border border-[#7BD955]/20">
-            <p className="text-[#0a6c45] dark:text-[#7BD955] text-center mb-3">
-              <strong>Usuários de Teste:</strong>
-            </p>
-            <div className="space-y-2 text-emerald-700 dark:text-emerald-300">
-              <p className="text-center bg-white/60 dark:bg-gray-700/40 rounded-lg py-1.5 px-3">marcos / @marcos123 <span className="text-xs opacity-75">(ADM)</span></p>
-              <p className="text-center bg-white/60 dark:bg-gray-700/40 rounded-lg py-1.5 px-3">lino / @lino123 <span className="text-xs opacity-75">(MONITORAMENTO)</span></p>
-              <p className="text-center bg-white/60 dark:bg-gray-700/40 rounded-lg py-1.5 px-3">lucas / @lucas123 <span className="text-xs opacity-75">(TECNICO)</span></p>
-              <p className="text-center bg-white/60 dark:bg-gray-700/40 rounded-lg py-1.5 px-3">ana / @ana123 <span className="text-xs opacity-75">(ANALISADOR)</span></p>
-            </div>
-          </div>
         </div>
       </div>
     </div>

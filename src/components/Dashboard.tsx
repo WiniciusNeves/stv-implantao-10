@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { Sidebar } from './Sidebar';
 import { DashboardHome } from './DashboardHome';
@@ -8,6 +9,12 @@ import { HistoricoList } from './HistoricoList';
 import { BackupList } from './BackupList';
 import { Configuracoes } from './Configuracoes';
 import { Condominio, HistoricoItem } from '../types';
+import { ProtectedRoute } from './ProtectedRoute';
+import { API_BASE_URL } from '../firebase';
+
+// NOTE: The backend API used here is simplified and does not yet handle
+// creating history records or backups. This functionality will need to be
+// added to the backend in the future.
 
 type View = 'dashboard' | 'list' | 'form' | 'historico' | 'backup' | 'configuracoes';
 
@@ -15,76 +22,30 @@ export function Dashboard() {
   const { user } = useAuth();
   const [view, setView] = useState<View>('dashboard');
   const [condominios, setCondominios] = useState<Condominio[]>([]);
-  const [historico, setHistorico] = useState<HistoricoItem[]>([]);
-  const [backups, setBackups] = useState<Condominio[]>([]);
   const [selectedCondominio, setSelectedCondominio] = useState<Condominio | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Carregar dados do localStorage
-  useEffect(() => {
-    const savedCondominios = localStorage.getItem('condominios');
-    const savedHistorico = localStorage.getItem('historico');
-    const savedBackups = localStorage.getItem('backups');
-    
-    if (savedCondominios) {
-      const parsed = JSON.parse(savedCondominios);
-      // Migração: adicionar campo dispositivosAcesso se não existir
-      const migrated = parsed.map((c: Condominio) => ({
-        ...c,
-        dispositivosAcesso: c.dispositivosAcesso || [],
-      }));
-      setCondominios(migrated);
-    }
-    if (savedHistorico) {
-      setHistorico(JSON.parse(savedHistorico));
-    }
-    if (savedBackups) {
-      const parsed = JSON.parse(savedBackups);
-      // Migração: adicionar campo dispositivosAcesso se não existir
-      const migrated = parsed.map((c: Condominio) => ({
-        ...c,
-        dispositivosAcesso: c.dispositivosAcesso || [],
-      }));
-      setBackups(migrated);
+  const fetchCondominios = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}/condominios`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setCondominios(data);
+    } catch (e: any) {
+      setError(e.message || 'Failed to fetch condominios');
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  // Salvar condominios no localStorage
   useEffect(() => {
-    if (condominios.length > 0) {
-      localStorage.setItem('condominios', JSON.stringify(condominios));
-    }
-  }, [condominios]);
-
-  // Salvar histórico no localStorage
-  useEffect(() => {
-    if (historico.length > 0) {
-      localStorage.setItem('historico', JSON.stringify(historico));
-    }
-  }, [historico]);
-
-  // Salvar backups no localStorage
-  useEffect(() => {
-    localStorage.setItem('backups', JSON.stringify(backups));
-  }, [backups]);
-
-  // Função para criar backup quando condomínio é concluído
-  const createBackupIfCompleted = (condominio: Condominio) => {
-    if (condominio.status === 'CONCLUÍDA') {
-      // Verifica se já existe backup deste condomínio
-      const backupExists = backups.some(b => b.id === condominio.id);
-      
-      if (!backupExists) {
-        // Cria um clone do condomínio para backup
-        const backup = { ...condominio };
-        setBackups(prev => [...prev, backup]);
-      } else {
-        // Atualiza o backup existente
-        setBackups(prev => 
-          prev.map(b => b.id === condominio.id ? { ...condominio } : b)
-        );
-      }
-    }
-  };
+    fetchCondominios();
+  }, [fetchCondominios]);
 
   const handleAddCondominio = () => {
     setSelectedCondominio(null);
@@ -96,66 +57,33 @@ export function Dashboard() {
     setView('form');
   };
 
-  const handleSaveCondominio = (condominio: Condominio, changes?: { campo: string; valorAnterior: string; valorNovo: string }[]) => {
-    const now = new Date().toISOString();
-    
-    if (selectedCondominio) {
-      // Editar existente
-      const updatedCondominio = { ...condominio, atualizadoEm: now };
-      setCondominios(prev => 
-        prev.map(c => c.id === condominio.id ? updatedCondominio : c)
-      );
+  const handleSaveCondominio = async (condominio: Condominio) => {
+    const isUpdating = !!condominio.id;
+    const url = isUpdating ? `${API_BASE_URL}/condominios/${condominio.id}` : `${API_BASE_URL}/condominios`;
+    const method = isUpdating ? 'PUT' : 'POST';
 
-      // Criar backup se estiver concluído
-      createBackupIfCompleted(updatedCondominio);
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(condominio),
+      });
 
-      // Adicionar ao histórico
-      if (changes && user) {
-        const newHistoricoItems: HistoricoItem[] = changes.map(change => ({
-          id: `hist-${Date.now()}-${Math.random()}`,
-          condominioId: condominio.id,
-          condominioNome: condominio.nomeCondominio,
-          usuario: user.username,
-          acao: 'EDIÇÃO',
-          campo: change.campo,
-          valorAnterior: change.valorAnterior,
-          valorNovo: change.valorNovo,
-          dataHora: now,
-        }));
-        setHistorico(prev => [...newHistoricoItems, ...prev]);
+      if (!response.ok) {
+        throw new Error(`Failed to save condominio: ${response.statusText}`);
       }
-    } else {
-      // Criar novo
-      const newCondominio = {
-        ...condominio,
-        criadoEm: now,
-        atualizadoEm: now,
-        criadoPor: user?.username || '',
-      };
-      setCondominios(prev => [...prev, newCondominio]);
 
-      // Criar backup se estiver concluído
-      createBackupIfCompleted(newCondominio);
+      await fetchCondominios(); // Refresh list
+      setView('list');
+      setSelectedCondominio(null);
 
-      // Adicionar ao histórico
-      if (user) {
-        const newHistoricoItem: HistoricoItem = {
-          id: `hist-${Date.now()}`,
-          condominioId: condominio.id,
-          condominioNome: condominio.nomeCondominio,
-          usuario: user.username,
-          acao: 'CRIAÇÃO',
-          campo: 'Condomínio',
-          valorAnterior: '',
-          valorNovo: 'Novo condomínio criado',
-          dataHora: now,
-        };
-        setHistorico(prev => [newHistoricoItem, ...prev]);
-      }
+    } catch (err: any) {
+      console.error('Error saving condominio:', err);
+      // Here you could set an error state to show in the UI
+      alert(`Error saving: ${err.message}`);
     }
-
-    setView('list');
-    setSelectedCondominio(null);
   };
 
   const handleCancelForm = () => {
@@ -163,24 +91,21 @@ export function Dashboard() {
     setSelectedCondominio(null);
   };
 
-  const handleDeleteCondominio = (id: string) => {
-    const condominio = condominios.find(c => c.id === id);
-    if (condominio && user) {
-      setCondominios(prev => prev.filter(c => c.id !== id));
+  const handleDeleteCondominio = async (id: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/condominios/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete condominio: ${response.statusText}`);
+      }
       
-      // Adicionar ao histórico
-      const newHistoricoItem: HistoricoItem = {
-        id: `hist-${Date.now()}`,
-        condominioId: id,
-        condominioNome: condominio.nomeCondominio,
-        usuario: user.username,
-        acao: 'EXCLUSÃO',
-        campo: 'Condomínio',
-        valorAnterior: condominio.nomeCondominio,
-        valorNovo: 'Condomínio excluído',
-        dataHora: new Date().toISOString(),
-      };
-      setHistorico(prev => [newHistoricoItem, ...prev]);
+      await fetchCondominios(); // Refresh list
+
+    } catch (err: any) {
+      console.error('Error deleting condominio:', err);
+      alert(`Error deleting: ${err.message}`);
     }
   };
 
@@ -189,8 +114,57 @@ export function Dashboard() {
     setView('form');
   };
 
-  const handleDeleteBackup = (id: string) => {
-    setBackups(prev => prev.filter(b => b.id !== id));
+  const renderContent = () => {
+    if (isLoading) {
+      return <div className="flex items-center justify-center h-full">Loading...</div>;
+    }
+
+    if (error) {
+      return <div className="flex items-center justify-center h-full text-red-500">Error: {error}</div>;
+    }
+
+    switch (view) {
+      case 'dashboard':
+        return <DashboardHome condominios={condominios} />;
+      case 'list':
+        return (
+          <CondominiosList
+            condominios={condominios}
+            onEdit={handleEditCondominio}
+            onDelete={handleDeleteCondominio}
+          />
+        );
+      case 'form':
+        return (
+          <ProtectedRoute roles={['ADM', 'MONITORAMENTO', 'TECNICO', 'ANALISADOR']}>
+            <CondominioForm 
+              condominio={selectedCondominio}
+              onSave={handleSaveCondominio}
+              onCancel={handleCancelForm}
+            />
+          </ProtectedRoute>
+        );
+      case 'historico':
+        return (
+          <ProtectedRoute roles={['ADM', 'MONITORAMENTO']}>
+            <HistoricoList />
+          </ProtectedRoute>
+        );
+      case 'backup':
+        return (
+          <ProtectedRoute roles={['ADM']}>
+            <BackupList onViewBackup={handleViewBackup} />
+          </ProtectedRoute>
+        );
+      case 'configuracoes':
+        return (
+          <ProtectedRoute roles={['ADM']}>
+            <Configuracoes onViewBackup={handleViewBackup} />
+          </ProtectedRoute>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -202,47 +176,7 @@ export function Dashboard() {
       />
       
       <main className="flex-1 overflow-auto pb-20 lg:pb-0">
-        {view === 'dashboard' && (
-          <DashboardHome condominios={condominios} />
-        )}
-        
-        {view === 'list' && (
-          <CondominiosList 
-            condominios={condominios}
-            onEdit={handleEditCondominio}
-            onDelete={handleDeleteCondominio}
-          />
-        )}
-        
-        {view === 'form' && (
-          <CondominioForm 
-            condominio={selectedCondominio}
-            onSave={handleSaveCondominio}
-            onCancel={handleCancelForm}
-          />
-        )}
-        
-        {view === 'historico' && (
-          <HistoricoList historico={historico} />
-        )}
-
-        {view === 'backup' && (
-          <BackupList 
-            backups={backups}
-            onViewBackup={handleViewBackup}
-            onDeleteBackup={handleDeleteBackup}
-          />
-        )}
-
-        {view === 'configuracoes' && (
-          <Configuracoes 
-            condominios={condominios} 
-            historico={historico}
-            backups={backups}
-            onViewBackup={handleViewBackup}
-            onDeleteBackup={handleDeleteBackup}
-          />
-        )}
+        {renderContent()}
       </main>
     </div>
   );
