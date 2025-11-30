@@ -51,5 +51,5 @@ export interface User {
   uid: string;
   email: string | null;
   username: string; // ou displayName
-  role?: 'ADM' | 'MONITORAMENTO' | 'TECNICO' | 'ANALISADOR'; // <--- Adicione isso
+  role?: "ADM" | "MONITORAMENTO" | "TECNICO" | "ANALISADOR"; // <--- Adicione isso
 }
