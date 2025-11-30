@@ -9,7 +9,6 @@
     {
       "source": "functions",
       "codebase": "default",
-      "disallowLegacyRuntimeConfig": true,
       "ignore": [
         "node_modules",
         ".git",
@@ -23,9 +22,6 @@
       ]
     }
   ],
-  "storage": {
-    "rules": "storage.rules"
-  },
   "hosting": {
     "public": "build",
     "ignore": [
@@ -35,13 +31,12 @@
     ],
     "rewrites": [
       {
-        "source": "/api/**",
-        "function": "condominiosApi"
-      },
-      {
         "source": "**",
         "destination": "/index.html"
       }
     ]
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }

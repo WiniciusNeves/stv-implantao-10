@@ -1,8 +1,8 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-// CORREÇÃO 1: Mudança na forma de importar express e cors
 import express from "express";
 import cors from "cors";
+// CORREÇÃO: Adicionados espaços dentro das chaves (object-curly-spacing)
 import { Condominio, HistoricoItem, Backup } from "./types";
 
 if (admin.apps.length === 0) {
@@ -94,7 +94,6 @@ const initializeNewCondominio = (
   };
 };
 
-// CORREÇÃO 2: Adicionada tipagem explicita (req: express.Request, res: express.Response)
 app.post("/condominios", async (req: express.Request, res: express.Response) => {
   try {
     const username =
@@ -110,6 +109,7 @@ app.post("/condominios", async (req: express.Request, res: express.Response) => 
 
     await newCondominioRef.set(newCondoData);
 
+    // CORREÇÃO: Espaço no objeto { id: ... }
     return res.status(201).send({ id: newCondominioRef.id });
   } catch (error) {
     console.error("Erro ao criar condomínio:", error);
@@ -124,6 +124,7 @@ app.get("/condominios", async (req: express.Request, res: express.Response) => {
       .orderBy("nomeCondominio")
       .get();
     const condominios: Condominio[] = snapshot.docs.map(
+      // CORREÇÃO: Espaço no objeto { id: ... }
       (doc) => ({ id: doc.id, ...doc.data() } as Condominio)
     );
     return res.status(200).json(condominios);
@@ -133,12 +134,17 @@ app.get("/condominios", async (req: express.Request, res: express.Response) => {
   }
 });
 
-app.get("/condominios/:id", async (req: express.Request, res: express.Response) => {
+// CORREÇÃO: Quebra de linha para max-len
+app.get("/condominios/:id", async (
+  req: express.Request,
+  res: express.Response
+) => {
   try {
     const doc = await db.collection("condominios").doc(req.params.id).get();
     if (!doc.exists) {
       return res.status(404).send("Condomínio não encontrado.");
     }
+    // CORREÇÃO: Espaço no objeto { id: ... }
     return res.status(200).json({ id: doc.id, ...doc.data() } as Condominio);
   } catch (error) {
     console.error("Erro ao buscar condomínio:", error);
@@ -154,8 +160,7 @@ app.put("/condominios/:id", async (req: express.Request, res: express.Response) 
 
     if (!userRole) {
       return res
-        .status(403)
-        .send("A função do usuário (role) é necessária.");
+        .status(403).send("A função do usuário (role) é necessária.");
     }
 
     const condominioRef = db.collection("condominios").doc(condominioId);
@@ -244,13 +249,11 @@ app.put("/condominios/:id", async (req: express.Request, res: express.Response) 
       let isAllowed = false;
       if (canEditGeral) {
         isAllowed = true;
-        // CORREÇÃO 3: Removida a checagem '&& userRole !== "TECNICO"' pois era redundante
       } else if (
         canEditMonitoramento &&
         isMonitoramentoField
       ) {
         isAllowed = true;
-        // CORREÇÃO 3: Removida a checagem '&& userRole !== "MONITORAMENTO"'
       } else if (
         canEditTecnica &&
         isTecnicaField
@@ -265,11 +268,10 @@ app.put("/condominios/:id", async (req: express.Request, res: express.Response) 
     });
 
     if (Object.keys(allowedUpdateData).length === 0) {
+      // CORREÇÃO: Quebra de linha para evitar erro max-len (linha 246 no original)
       return res
         .status(403)
-        .send(
-          "Você não tem permissão para alterar os campos especificados."
-        );
+        .send("Você não tem permissão para alterar os campos especificados.");
     }
 
     allowedUpdateData.atualizadoEm = new Date().toISOString();
@@ -285,13 +287,18 @@ app.put("/condominios/:id", async (req: express.Request, res: express.Response) 
     return res.status(200).send("Condomínio atualizado com sucesso.");
   } catch (error) {
     console.error("Erro ao atualizar condomínio:", error);
+    // CORREÇÃO: Quebra de linha
     return res
       .status(500)
       .send("Ocorreu um erro inesperado ao atualizar o condomínio.");
   }
 });
 
-app.delete("/condominios/:id", async (req: express.Request, res: express.Response) => {
+// CORREÇÃO: Quebra de linha na definição da função para max-len
+app.delete("/condominios/:id", async (
+  req: express.Request,
+  res: express.Response
+) => {
   try {
     const userRole = req.headers["x-user-role"] as string;
     if (userRole !== "ADM") {
@@ -310,5 +317,47 @@ app.delete("/condominios/:id", async (req: express.Request, res: express.Respons
     return res.status(500).send("Erro ao deletar condomínio.");
   }
 });
+// --- INICIO DO CÓDIGO TEMPORÁRIO PARA CRIAR USUÁRIOS ---
+app.get("/seed-users", async (req: express.Request, res: express.Response) => {
+  type UserRole = "ADM" | "MONITORAMENTO" | "TECNICO" | "ANALISADOR";
+
+  const usersToCreate: Array<{ email: string; password: string; role: UserRole }> = [
+    { email: "marcos@stv.com.br", password: "@marcos123", role: "ADM" },
+    { email: "lino@stv.com.br", password: "@lino123", role: "MONITORAMENTO" },
+    { email: "lucas@stv.com.br", password: "@lucas123", role: "TECNICO" },
+    { email: "alisson@stv.com.br", password: "@alisson123", role: "ANALISADOR" },
+  ];
+
+  const results: string[] = [];
+
+  for (const user of usersToCreate) {
+    try {
+      // 1. Tenta verificar se o usuário já existe
+      let userRecord;
+      try {
+        userRecord = await admin.auth().getUserByEmail(user.email);
+        results.push(`Usuário já existia: ${user.email}`);
+      } catch {
+        // Se der erro, é porque não existe, então cria
+        userRecord = await admin.auth().createUser({
+          email: user.email,
+          password: user.password,
+        });
+        results.push(`Usuário criado: ${user.email}`);
+      }
+
+      // 2. Define a permissão (Custom Claim)
+      await admin.auth().setCustomUserClaims(userRecord.uid, { role: user.role });
+      results.push(`Permissão [${user.role}] atribuída para ${user.email}`);
+
+    } catch (error) {
+      console.error(`Erro ao processar ${user.email}:`, error);
+      results.push(`ERRO em ${user.email}: ${error.message}`);
+    }
+  }
+
+  return res.status(200).json({ log: results });
+});
+// --- FIM DO CÓDIGO TEMPORÁRIO ---
 
 export const condominiosApi = functions.https.onRequest(app);

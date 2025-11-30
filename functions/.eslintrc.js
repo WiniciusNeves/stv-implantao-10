@@ -9,7 +9,7 @@ module.exports = {
     "plugin:import/errors",
     "plugin:import/warnings",
     "plugin:import/typescript",
-    "google", // Isso é o que traz as regras chatas, mas vamos anular abaixo
+    "google",
     "plugin:@typescript-eslint/recommended",
   ],
   parser: "@typescript-eslint/parser",
@@ -19,6 +19,7 @@ module.exports = {
   },
   ignorePatterns: [
     "/lib/**/*", // Ignore built files.
+    "/generated/**/*", // Ignore generated files.
   ],
   plugins: [
     "@typescript-eslint",
@@ -27,17 +28,13 @@ module.exports = {
   rules: {
     "quotes": ["error", "double"],
     "import/no-unresolved": 0,
+    "indent": ["error", 2],
 
-    // --- REGRAS DESATIVADAS (OFF) ---
-    "indent": "off", // Desliga verificação de indentação
-    "@typescript-eslint/indent": "off", // Garante que o TS também não reclame de indentação
-    "object-curly-spacing": "off", // Desliga erro de espaço em chaves { }
-    "operator-linebreak": "off", // Desliga erro de onde colocar ? e :
-    "eol-last": "off", // Desliga erro de linha em branco no final
-    "max-len": "off", // Desliga erro de linha muito comprida
-    "valid-jsdoc": "off", // Desliga exigência de comentários JSDoc
-    "require-jsdoc": "off", // Desliga exigência de documentação
-    "spaced-comment": "off", // Desliga erro de espaço em comentários //
-    "no-trailing-spaces": "off", // Desliga erro de espaço em branco no fim da linha
+    "linebreak-style": "off",
+    "object-curly-spacing": "off",
+    "max-len": "off",
+    "eol-last": "off",
+    "require-jsdoc": "off",
+    "valid-jsdoc": "off",
   },
 };
