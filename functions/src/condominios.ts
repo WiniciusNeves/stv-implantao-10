@@ -317,47 +317,5 @@ app.delete("/condominios/:id", async (
     return res.status(500).send("Erro ao deletar condomínio.");
   }
 });
-// --- INICIO DO CÓDIGO TEMPORÁRIO PARA CRIAR USUÁRIOS ---
-app.get("/seed-users", async (req: express.Request, res: express.Response) => {
-  type UserRole = "ADM" | "MONITORAMENTO" | "TECNICO" | "ANALISADOR";
-
-  const usersToCreate: Array<{ email: string; password: string; role: UserRole }> = [
-    { email: "marcos@stv.com.br", password: "@marcos123", role: "ADM" },
-    { email: "lino@stv.com.br", password: "@lino123", role: "MONITORAMENTO" },
-    { email: "lucas@stv.com.br", password: "@lucas123", role: "TECNICO" },
-    { email: "alisson@stv.com.br", password: "@alisson123", role: "ANALISADOR" },
-  ];
-
-  const results: string[] = [];
-
-  for (const user of usersToCreate) {
-    try {
-      // 1. Tenta verificar se o usuário já existe
-      let userRecord;
-      try {
-        userRecord = await admin.auth().getUserByEmail(user.email);
-        results.push(`Usuário já existia: ${user.email}`);
-      } catch {
-        // Se der erro, é porque não existe, então cria
-        userRecord = await admin.auth().createUser({
-          email: user.email,
-          password: user.password,
-        });
-        results.push(`Usuário criado: ${user.email}`);
-      }
-
-      // 2. Define a permissão (Custom Claim)
-      await admin.auth().setCustomUserClaims(userRecord.uid, { role: user.role });
-      results.push(`Permissão [${user.role}] atribuída para ${user.email}`);
-
-    } catch (error) {
-      console.error(`Erro ao processar ${user.email}:`, error);
-      results.push(`ERRO em ${user.email}: ${error.message}`);
-    }
-  }
-
-  return res.status(200).json({ log: results });
-});
-// --- FIM DO CÓDIGO TEMPORÁRIO ---
 
 export const condominiosApi = functions.https.onRequest(app);
