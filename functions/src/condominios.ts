@@ -1,8 +1,9 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import * as express from "express";
-import { Request, Response } from "express";
-import { Condominio, HistoricoItem, Backup } from "./types"; // Assuming types are in a separate file
+// CORREÇÃO 1: Mudança na forma de importar express e cors
+import express from "express";
+import cors from "cors";
+import { Condominio, HistoricoItem, Backup } from "./types";
 
 if (admin.apps.length === 0) {
   admin.initializeApp();
@@ -11,193 +12,303 @@ if (admin.apps.length === 0) {
 const db = admin.firestore();
 const app = express();
 
-// Middleware to log changes
-const logChanges = async (condominioId: string, changes: any[], user: string) => {
+app.use(cors({ origin: true }));
+app.use(express.json());
+
+const logChanges = async (
+  condominioId: string,
+  condominioNome: string,
+  changes: Partial<HistoricoItem>[],
+  usuario: string
+) => {
+  const batch = db.batch();
   const timestamp = new Date().toISOString();
-  const historicoRef = db.collection("historico").doc();
-  await historicoRef.set({
-    id: historicoRef.id,
-    condominioId,
-    timestamp,
-    user,
-    changes,
-  });
-};
 
-// Helper to create a backup
-const createBackup = async (condominioId: string, condominioData: Condominio) => {
-    const backupRef = db.collection("backups").doc(`${condominioId}_${new Date().toISOString()}`);
-    await backupRef.set(condominioData);
-};
-
-
-const getCondominioWithDefaults = (data: Partial<Condominio>): Condominio => {
-    const timestamp = new Date().toISOString();
-
-    return {
-        id: data.id || '',
-        criadoEm: data.criadoEm || timestamp,
-        atualizadoEm: data.atualizadoEm || timestamp,
-
-        // Informações básicas
-        nomeCondominio: data.nomeCondominio || '',
-        contaSituator: data.contaSituator || null,
-        cidade: data.cidade || '',
-        bairro: data.bairro || '',
-        dataImplantacao: data.dataImplantacao || null,
-        status: data.status || 'EM IMPLANTAÇÃO',
-
-        // Links
-        linkCadastro: data.linkCadastro || null,
-        linkFotos: data.linkFotos || null,
-        linkCentral: data.linkCentral || null,
-        linkDocumentos: data.linkDocumentos || null,
-
-        // Checklist de Monitoramento
-        checklistMonitoramento: data.checklistMonitoramento || {
-            statusComunicador: 'NÃO INICIADO',
-            statusAcessoRemoto: 'NÃO INICIADO',
-            statusCadastro: 'NÃO INICIADO',
-            statusApp: 'NÃO INICIADO',
-        },
-
-        // Checklist de Técnica
-        checklistTecnica: data.checklistTecnica || {
-            statusVistoria: 'NÃO INICIADO',
-            statusMaterial: 'NÃO INICIADO',
-            statusFotos: 'NÃO INICIADO',
-            statusAcompanhamento: 'NÃO INICIADO',
-            statusFinalizacao: 'NÃO INICIADO',
-        },
-
-        // Serviços
-        cftv: data.cftv || 'NÃO INICIADO',
-        alarme: data.alarme || 'NÃO INICIADO',
-        controleAcesso: data.controleAcesso || 'NÃO INICIADO',
-        incendio: data.incendio || 'NÃO INICIADO',
-        gerador: data.gerador || 'NÃO INICIADO',
-
-        // Campos de texto para detalhes
-        detalhesComunicador: data.detalhesComunicador || null,
-        detalhesAcessoRemoto: data.detalhesAcessoRemoto || null,
-        detalhesCadastro: data.detalhesCadastro || null,
-        detalhesApp: data.detalhesApp || null,
-        detalhesVistoria: data.detalhesVistoria || null,
-        detalhesMaterial: data.detalhesMaterial || null,
-        detalhesFotos: data.detalhesFotos || null,
-        detalhesAcompanhamento: data.detalhesAcompanhamento || null,
-        detalhesFinalizacao: data.detalhesFinalizacao || null,
+  changes.forEach((change) => {
+    const historicoRef = db.collection("historico").doc();
+    const newHistorico: HistoricoItem = {
+      id: historicoRef.id,
+      condominioId,
+      condominioNome,
+      usuario,
+      acao: "Atualização",
+      campo: change.campo || "N/A",
+      valorAnterior: change.valorAnterior || "",
+      valorNovo: change.valorNovo || "",
+      dataHora: timestamp,
     };
+    batch.set(historicoRef, newHistorico);
+  });
+
+  await batch.commit();
 };
 
-// CREATE
-app.post("/condominios", async (req: Request, res: Response) => {
+const createBackup = async (condominioId: string) => {
+  const condominioRef = db.collection("condominios").doc(condominioId);
+  const doc = await condominioRef.get();
+  if (!doc.exists) {
+    return;
+  }
+
+  const originalData = doc.data() as Condominio;
+  const backupData: Backup = {
+    ...originalData,
+    originalId: condominioId,
+    backupDate: new Date().toISOString(),
+  };
+
+  const timestamp = Date.now();
+  const backupRef = db.collection("backups").doc(
+    `${condominioId}_${timestamp}`
+  );
+  await backupRef.set(backupData);
+};
+
+const initializeNewCondominio = (
+  data: Partial<Condominio>,
+  username: string
+): Condominio => {
+  const timestamp = new Date().toISOString();
+  return {
+    id: "",
+    nomeCondominio: data.nomeCondominio || "",
+    linkCadastro: data.linkCadastro || "",
+    status: "NÃO INICIADA",
+    ramais: [],
+    cftv: "EM ANDAMENTO",
+    contaSituator: "",
+    configuracaoSituator: "EM ANDAMENTO",
+    licencas: "SOLICITADAS",
+    appStv: "EM ANDAMENTO",
+    dataImplantacao: "",
+    dispositivosAcesso: [],
+    observacoes: "",
+    vistorias: "NÃO INICIADA",
+    parametrizacao: "A FAZER",
+    instalacao: "EM ANDAMENTO",
+    testesTecnico: "EM ANDAMENTO",
+    entregaInstrucao: [],
+    criadoEm: timestamp,
+    atualizadoEm: timestamp,
+    criadoPor: username,
+  };
+};
+
+// CORREÇÃO 2: Adicionada tipagem explicita (req: express.Request, res: express.Response)
+app.post("/condominios", async (req: express.Request, res: express.Response) => {
   try {
-    const condominioData = getCondominioWithDefaults(req.body);
-    const newCondominioRef = db.collection("condominios").doc();
-    condominioData.id = newCondominioRef.id;
+    const username =
+      (req.headers["x-user-name"] as string) || "system";
+    const newCondoData = initializeNewCondominio(req.body, username);
 
-    await newCondominioRef.set(condominioData);
-    
-    res.status(201).send({id: newCondominioRef.id});
-
-  } catch (error) {
-    console.error("Error creating condominio:", error);
-    if (error instanceof Error) {
-        res.status(500).send(`Error creating condominio: ${error.message}`);
-    } else {
-        res.status(500).send("An unexpected error occurred.");
+    if (!newCondoData.nomeCondominio) {
+      return res.status(400).send("O nome do condomínio é obrigatório.");
     }
-  }
-});
 
-// READ (all)
-app.get("/condominios", async (req: Request, res: Response) => {
-  try {
-    const snapshot = await db.collection("condominios").get();
-    const condominios: Condominio[] = [];
-    snapshot.forEach((doc) => {
-      condominios.push({id: doc.id, ...doc.data()} as Condominio);
-    });
-    res.status(200).json(condominios);
+    const newCondominioRef = db.collection("condominios").doc();
+    newCondoData.id = newCondominioRef.id;
+
+    await newCondominioRef.set(newCondoData);
+
+    return res.status(201).send({ id: newCondominioRef.id });
   } catch (error) {
-    console.error("Error getting condominios:", error);
-    res.status(500).send("Error getting condominios");
+    console.error("Erro ao criar condomínio:", error);
+    return res.status(500).send("Ocorreu um erro inesperado.");
   }
 });
 
-// READ (one)
-app.get("/condominios/:id", async (req: Request, res: Response) => {
+app.get("/condominios", async (req: express.Request, res: express.Response) => {
+  try {
+    const snapshot = await db
+      .collection("condominios")
+      .orderBy("nomeCondominio")
+      .get();
+    const condominios: Condominio[] = snapshot.docs.map(
+      (doc) => ({ id: doc.id, ...doc.data() } as Condominio)
+    );
+    return res.status(200).json(condominios);
+  } catch (error) {
+    console.error("Erro ao buscar condomínios:", error);
+    return res.status(500).send("Erro ao buscar condomínios.");
+  }
+});
+
+app.get("/condominios/:id", async (req: express.Request, res: express.Response) => {
   try {
     const doc = await db.collection("condominios").doc(req.params.id).get();
     if (!doc.exists) {
-      res.status(404).send("Condominio not found");
-    } else {
-      res.status(200).json({id: doc.id, ...doc.data()} as Condominio);
+      return res.status(404).send("Condomínio não encontrado.");
     }
+    return res.status(200).json({ id: doc.id, ...doc.data() } as Condominio);
   } catch (error) {
-    console.error("Error getting condominio:", error);
-    res.status(500).send("Error getting condominio");
+    console.error("Erro ao buscar condomínio:", error);
+    return res.status(500).send("Erro ao buscar condomínio.");
   }
 });
 
-// UPDATE
-app.put("/condominios/:id", async (req: Request, res: Response) => {
-    try {
-        const condominioRef = db.collection("condominios").doc(req.params.id);
-        const doc = await condominioRef.get();
-
-        if (!doc.exists) {
-            return res.status(404).send("Condominio not found");
-        }
-
-        const originalData = doc.data() as Condominio;
-        const updatedData = req.body;
-        updatedData.atualizadoEm = new Date().toISOString();
-
-        // Backup before updating
-        await createBackup(req.params.id, originalData);
-        
-        // Log changes
-        const user = req.headers['x-user-email'] as string || 'unknown_user'; 
-        const changes = req.body.changes || []; // Assume changes are sent from frontend
-        if(changes.length > 0){
-             await logChanges(req.params.id, changes, user);
-        }
-
-        await condominioRef.update(updatedData);
-        
-        res.status(200).send("Condominio updated successfully");
-
-    } catch (error) {
-        console.error("Error updating condominio:", error);
-        res.status(500).send("Error updating condominio");
-    }
-});
-
-// DELETE
-app.delete("/condominios/:id", async (req: Request, res: Response) => {
+app.put("/condominios/:id", async (req: express.Request, res: express.Response) => {
   try {
-    const condominioRef = db.collection("condominios").doc(req.params.id);
+    const condominioId = req.params.id;
+    const userRole = req.headers["x-user-role"] as string;
+    const userName = (req.headers["x-user-name"] as string) || "system";
+
+    if (!userRole) {
+      return res
+        .status(403)
+        .send("A função do usuário (role) é necessária.");
+    }
+
+    const condominioRef = db.collection("condominios").doc(condominioId);
     const doc = await condominioRef.get();
 
     if (!doc.exists) {
-      return res.status(404).send("Condominio not found");
+      return res.status(404).send("Condomínio não encontrado.");
     }
 
-    const data = doc.data() as Condominio;
+    const originalData = doc.data() as Condominio;
+    const newData = req.body as Partial<Condominio>;
 
-    // Backup before deleting
-    await createBackup(req.params.id, data);
-    
-    await condominioRef.delete();
-    
-    res.status(200).send("Condominio deleted successfully");
+    const canEditMonitoramento =
+      userRole === "ADM" || userRole === "MONITORAMENTO";
+    const canEditTecnica = userRole === "ADM" || userRole === "TECNICO";
+    const canEditGeral = userRole === "ADM";
+
+    if (userRole === "ANALISADOR") {
+      return res
+        .status(403)
+        .send("Usuário não tem permissão para editar.");
+    }
+
+    const detectChanges = (): Partial<HistoricoItem>[] => {
+      const changes: Partial<HistoricoItem>[] = [];
+      const keys = Object.keys(newData) as (keyof Condominio)[];
+
+      keys.forEach((field) => {
+        const valorAnterior = originalData[field];
+        const valorNovo = newData[field];
+        const strAnterior = Array.isArray(valorAnterior) ?
+          valorAnterior.join(", ") :
+          String(valorAnterior ?? "");
+        const strNovo = Array.isArray(valorNovo) ?
+          valorNovo.join(", ") :
+          String(valorNovo ?? "");
+
+        if (strAnterior !== strNovo) {
+          changes.push({
+            campo: field,
+            valorAnterior: strAnterior,
+            valorNovo: strNovo,
+          });
+        }
+      });
+      return changes;
+    };
+
+    const allChanges = detectChanges();
+    if (allChanges.length === 0) {
+      return res.status(200).send("Nenhuma alteração detectada.");
+    }
+
+    await createBackup(condominioId);
+
+    const allowedUpdateData: Record<string, unknown> = {};
+    const loggedChanges: Partial<HistoricoItem>[] = [];
+
+    allChanges.forEach((change) => {
+      const field = change.campo as keyof Condominio;
+      if (!field) return;
+
+      const isMonitoramentoField = [
+        "nomeCondominio",
+        "linkCadastro",
+        "status",
+        "ramais",
+        "cftv",
+        "contaSituator",
+        "configuracaoSituator",
+        "licencas",
+        "appStv",
+        "dataImplantacao",
+        "dispositivosAcesso",
+        "observacoes",
+      ].includes(field);
+
+      const isTecnicaField = [
+        "vistorias",
+        "parametrizacao",
+        "instalacao",
+        "testesTecnico",
+        "entregaInstrucao",
+      ].includes(field);
+
+      let isAllowed = false;
+      if (canEditGeral) {
+        isAllowed = true;
+        // CORREÇÃO 3: Removida a checagem '&& userRole !== "TECNICO"' pois era redundante
+      } else if (
+        canEditMonitoramento &&
+        isMonitoramentoField
+      ) {
+        isAllowed = true;
+        // CORREÇÃO 3: Removida a checagem '&& userRole !== "MONITORAMENTO"'
+      } else if (
+        canEditTecnica &&
+        isTecnicaField
+      ) {
+        isAllowed = true;
+      }
+
+      if (isAllowed) {
+        allowedUpdateData[field] = newData[field];
+        loggedChanges.push(change);
+      }
+    });
+
+    if (Object.keys(allowedUpdateData).length === 0) {
+      return res
+        .status(403)
+        .send(
+          "Você não tem permissão para alterar os campos especificados."
+        );
+    }
+
+    allowedUpdateData.atualizadoEm = new Date().toISOString();
+    await condominioRef.update(allowedUpdateData);
+
+    await logChanges(
+      condominioId,
+      originalData.nomeCondominio,
+      loggedChanges,
+      userName
+    );
+
+    return res.status(200).send("Condomínio atualizado com sucesso.");
   } catch (error) {
-    console.error("Error deleting condominio:", error);
-    res.status(500).send("Error deleting condominio");
+    console.error("Erro ao atualizar condomínio:", error);
+    return res
+      .status(500)
+      .send("Ocorreu um erro inesperado ao atualizar o condomínio.");
   }
 });
 
+app.delete("/condominios/:id", async (req: express.Request, res: express.Response) => {
+  try {
+    const userRole = req.headers["x-user-role"] as string;
+    if (userRole !== "ADM") {
+      return res
+        .status(403)
+        .send("Apenas administradores podem deletar condomínios.");
+    }
+
+    const condominioId = req.params.id;
+    await createBackup(condominioId);
+    await db.collection("condominios").doc(condominioId).delete();
+
+    return res.status(200).send("Condomínio deletado com sucesso.");
+  } catch (error) {
+    console.error("Erro ao deletar condomínio:", error);
+    return res.status(500).send("Erro ao deletar condomínio.");
+  }
+});
 
 export const condominiosApi = functions.https.onRequest(app);

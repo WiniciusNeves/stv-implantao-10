@@ -1,75 +1,98 @@
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import {
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
+import { 
+  createContext, 
+  useContext, 
+  useState, 
+  useEffect, 
+  ReactNode, 
+  useCallback 
+} from 'react';
+import { 
+  getAuth, 
+  onAuthStateChanged, 
+  User as FirebaseUser, 
   signOut,
-  User as FirebaseUser
+  signInWithEmailAndPassword
 } from 'firebase/auth';
-import { auth } from '../firebase'; // Removed 'db' import, it's no longer used
 
-// Corrected the role to match the data 'TECNICO'
-export type UserRole = 'ADM' | 'MONITORAMENTO' | 'TECNICO' | 'ANALISADOR' | 'USER';
-
-export interface User {
-  uid: string;
-  email: string | null;
-  role: UserRole;
-  displayName?: string;
+// Define a interface para o objeto de usuário, estendendo o FirebaseUser
+interface User extends FirebaseUser {
+  role: string; // Adicione outros campos personalizados conforme necessário
 }
 
+// Define a interface para o valor do contexto de autenticação
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  login: (email: string, pass: string) => Promise<any>;
+  // Adicione a propriedade auth ao tipo de contexto
+  auth: any; 
 }
 
+// Cria o contexto de autenticação com um valor inicial undefined
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+// Define a interface para as props do provedor de autenticação
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const auth = getAuth(); // Obtenha o objeto auth
+
+  const login = useCallback(async (email, password) => {
+    try {
+      return await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      console.error("Erro ao fazer login:", error);
+      throw error;
+    }
+  }, [auth]);
+
+  // Lida com o logout do usuário
+  const logout = useCallback(async () => {
+    try {
+      await signOut(auth);
+      // A lógica onAuthStateChanged cuidará de definir o usuário como nulo
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+    }
+  }, [auth]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        // User is signed in, get their role from custom claims in the ID token.
-        // Force a refresh of the token to get the latest claims.
-        const idTokenResult = await firebaseUser.getIdTokenResult(true);
-        
-        const userData: User = {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName || undefined,
-          // Cast the claim to UserRole and provide a default fallback role.
-          role: (idTokenResult.claims.role as UserRole) || 'USER',
+        // Adicione a propriedade 'role' ao objeto de usuário
+        const extendedUser: User = {
+          ...firebaseUser,
+          role: 'ADM', // Defina a role do usuário aqui (pode ser dinâmica)
         };
-        setUser(userData);
+        setUser(extendedUser);
       } else {
-        // User is signed out
         setUser(null);
       }
       setLoading(false);
     });
 
-    // Cleanup subscription on unmount
+    // Limpa o listener quando o componente é desmontado
     return () => unsubscribe();
-  }, []);
+  }, [auth]);
 
-  const login = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
-    // onAuthStateChanged will handle setting the user state.
-  };
-
-  const logout = () => {
-    signOut(auth);
-    // onAuthStateChanged will handle setting the user state to null.
+  // Cria o valor do contexto
+  const value: AuthContextType = {
+    user,
+    loading,
+    logout,
+    login,
+    auth, // Fornece o objeto auth
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
-      {!loading && children}
+    <AuthContext.Provider value={value}>
+      {children}
     </AuthContext.Provider>
   );
 }

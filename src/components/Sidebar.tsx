@@ -1,16 +1,14 @@
 
 import { 
   List, 
-  History, 
   Plus, 
   LogOut, 
   User, 
   LayoutDashboard, 
-  Database, 
   Settings 
 } from 'lucide-react';
 import { useAuth } from './AuthContext';
-import { ProtectedRoute } from './ProtectedRoute'; // Import ProtectedRoute
+import { ProtectedRoute } from './ProtectedRoute';
 import logoImage from '../assets/logo.png';
 
 type View = 'dashboard' | 'list' | 'form' | 'historico' | 'backup' | 'configuracoes';
@@ -21,19 +19,16 @@ interface SidebarProps {
   onAddCondominio: () => void;
 }
 
-// Define all navigation items with their required roles
 const navItems = [
-  { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', view: 'dashboard' as const, roles: ['ADM', 'MONITORAMENTO', 'TECNICO', 'ANALISADOR'] },
-  { id: 'list', icon: List, label: 'Condomínios', view: 'list' as const, roles: ['ADM', 'MONITORAMENTO', 'TECNICO', 'ANALISADOR'] },
-  { id: 'historico', icon: History, label: 'Histórico', view: 'historico' as const, roles: ['ADM', 'MONITORAMENTO'] },
-  { id: 'backup', icon: Database, label: 'Backups', view: 'backup' as const, roles: ['ADM'] },
+  { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', view: 'dashboard' as const, roles: ['ADM', 'MONITORAMENTO', 'TECNICO', 'ANALISADOR', 'USER'] },
+  { id: 'list', icon: List, label: 'Condomínios', view: 'list' as const, roles: ['ADM', 'MONITORAMENTO', 'TECNICO', 'ANALISADOR', 'USER'] },
 ];
 
 const settingsItem = {
   id: 'configuracoes', 
   icon: Settings, 
-  label: 'Config', // Short label for mobile
-  desktopLabel: 'Configurações', // Longer label for desktop
+  label: 'Config', 
+  desktopLabel: 'Configurações', 
   view: 'configuracoes' as const, 
   roles: ['ADM']
 };
@@ -50,6 +45,8 @@ export function Sidebar({ currentView, onViewChange, onAddCondominio }: SidebarP
       default: return 'bg-gray-600';
     }
   };
+
+  const mobileNavItems = navItems.filter(item => item.id !== 'historico' && item.id !== 'backup');
 
   return (
     <>
@@ -84,7 +81,7 @@ export function Sidebar({ currentView, onViewChange, onAddCondominio }: SidebarP
                 );
               })}
 
-              <ProtectedRoute roles={['ADM', 'TECNICO']}>
+              <ProtectedRoute roles={['ADM', 'TECNICO', 'USER']}>
                 <button
                   onClick={onAddCondominio}
                   className="flex items-center gap-2 px-4 h-11 rounded-xl text-white bg-gradient-to-r from-[#7BD955] via-[#0a6c45] to-emerald-700 hover:from-[#6BC845] hover:via-[#095c35] hover:to-emerald-800 transition-all shadow-xl shadow-[#0a6c45]/40 hover:shadow-2xl hover:scale-105 active:scale-95 border border-white/20 group"
@@ -135,7 +132,7 @@ export function Sidebar({ currentView, onViewChange, onAddCondominio }: SidebarP
         <div className="w-full flex items-center justify-center py-4 gap-3 bg-gradient-to-t from-emerald-50 via-white to-white dark:from-gray-800 dark:via-gray-900 dark:to-gray-900 relative overflow-hidden">
           <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#7BD955]/10 via-transparent to-transparent pointer-events-none"></div>
           
-          {[...navItems].map((item) => {
+          {mobileNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentView === item.view;
             return (
@@ -155,7 +152,7 @@ export function Sidebar({ currentView, onViewChange, onAddCondominio }: SidebarP
             );
           })}
 
-          <ProtectedRoute roles={['ADM', 'TECNICO']}>
+          <ProtectedRoute roles={['ADM', 'TECNICO', 'USER']}>
             <div className="relative -translate-y-3 z-20">
               <div className="absolute inset-0 bg-gradient-to-br from-[#7BD955] via-yellow-400 to-[#0a6c45] rounded-full blur-xl opacity-60 animate-pulse scale-110"></div>
               <div className="absolute inset-0 rounded-full border-4 border-white/50 dark:border-gray-800/50 animate-ping opacity-75"></div>
@@ -195,30 +192,6 @@ export function Sidebar({ currentView, onViewChange, onAddCondominio }: SidebarP
           </button>
         </div>
       </nav>
-
-      {/* Mobile Header */}
-      <header className="lg:hidden bg-gradient-to-r from-[#7BD955] via-[#0a6c45] to-emerald-700 border-b-2 border-white/20 shadow-2xl px-6 py-4 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-32 h-32 bg-yellow-300 rounded-full mix-blend-overlay filter blur-2xl opacity-30 animate-pulse"></div>
-        <div className="absolute bottom-0 right-0 w-32 h-32 bg-emerald-300 rounded-full mix-blend-overlay filter blur-2xl opacity-30 animate-pulse delay-700"></div>
-        <div className="flex items-center justify-between relative z-10">
-          <div className="flex-1"></div>
-          <div className="flex items-center justify-center">
-            <div className="bg-white/20 backdrop-blur-md rounded-2xl px-6 py-3 shadow-lg">
-              <img src={logoImage} alt="STV" className="h-10 w-auto drop-shadow-lg"/>
-            </div>
-          </div>
-          <div className="flex-1 flex justify-end">
-            <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md rounded-2xl px-3 py-2 shadow-lg border border-white/30">
-              <div className="w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-md">
-                <User className="w-4 h-4 text-[#0a6c45]" />
-              </div>
-              <span className={`px-3 py-1.5 ${getRoleBadgeColor(user?.role || '')} text-white rounded-xl text-xs shadow-md`}>
-                {user?.role}
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
     </>
   );
 }

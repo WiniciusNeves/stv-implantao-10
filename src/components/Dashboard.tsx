@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { Sidebar } from './Sidebar';
@@ -8,13 +7,9 @@ import { CondominioForm } from './CondominioForm';
 import { HistoricoList } from './HistoricoList';
 import { BackupList } from './BackupList';
 import { Configuracoes } from './Configuracoes';
-import { Condominio, HistoricoItem } from '../types';
+import { Condominio } from '../types';
 import { ProtectedRoute } from './ProtectedRoute';
 import { API_BASE_URL } from '../firebase';
-
-// NOTE: The backend API used here is simplified and does not yet handle
-// creating history records or backups. This functionality will need to be
-// added to the backend in the future.
 
 type View = 'dashboard' | 'list' | 'form' | 'historico' | 'backup' | 'configuracoes';
 
@@ -58,17 +53,34 @@ export function Dashboard() {
   };
 
   const handleSaveCondominio = async (condominio: Condominio) => {
-    const isUpdating = !!condominio.id;
-    const url = isUpdating ? `${API_BASE_URL}/condominios/${condominio.id}` : `${API_BASE_URL}/condominios`;
+    // CORREÇÃO: Usamos 'selectedCondominio' para verificar se é edição.
+    // Se for null, sabemos que o usuário clicou em "Adicionar", então é POST.
+    const isUpdating = !!selectedCondominio;
+
+    const url = isUpdating
+      ? `${API_BASE_URL}/condominios/${condominio.id}`
+      : `${API_BASE_URL}/condominios`;
+
     const method = isUpdating ? 'PUT' : 'POST';
 
     try {
+      // Opcional: Removemos o ID do payload se for criação para evitar erros no backend
+      // Mas enviamos o objeto completo se for atualização
+      const payload = { ...condominio };
+      if (!isUpdating) {
+        // @ts-ignore - Ignora erro de TS se o id for obrigatório na interface, pois no banco será gerado
+        delete payload.id;
+      }
+
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
+          // Incluindo headers de usuário para o backend (conforme seu backend espera)
+          'x-user-name': user?.email || 'system',
+          'x-user-role': 'ADM' // Ajuste aqui conforme como você pega a role do usuário no frontend
         },
-        body: JSON.stringify(condominio),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -81,7 +93,6 @@ export function Dashboard() {
 
     } catch (err: any) {
       console.error('Error saving condominio:', err);
-      // Here you could set an error state to show in the UI
       alert(`Error saving: ${err.message}`);
     }
   };
@@ -92,15 +103,24 @@ export function Dashboard() {
   };
 
   const handleDeleteCondominio = async (id: string) => {
+    // Adicione uma confirmação simples para segurança
+    if (!window.confirm("Tem certeza que deseja excluir este condomínio?")) {
+      return;
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/condominios/${id}`, {
         method: 'DELETE',
+        headers: {
+          // Role necessária para deletar conforme seu backend
+          'x-user-role': 'ADM'
+        }
       });
 
       if (!response.ok) {
         throw new Error(`Failed to delete condominio: ${response.statusText}`);
       }
-      
+
       await fetchCondominios(); // Refresh list
 
     } catch (err: any) {
@@ -137,7 +157,7 @@ export function Dashboard() {
       case 'form':
         return (
           <ProtectedRoute roles={['ADM', 'MONITORAMENTO', 'TECNICO', 'ANALISADOR']}>
-            <CondominioForm 
+            <CondominioForm
               condominio={selectedCondominio}
               onSave={handleSaveCondominio}
               onCancel={handleCancelForm}
@@ -169,12 +189,12 @@ export function Dashboard() {
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <Sidebar 
-        currentView={view} 
+      <Sidebar
+        currentView={view}
         onViewChange={setView}
         onAddCondominio={handleAddCondominio}
       />
-      
+
       <main className="flex-1 overflow-auto pb-20 lg:pb-0">
         {renderContent()}
       </main>
