@@ -11,15 +11,13 @@ import { getFirestore } from "firebase/firestore";
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyA0SVw1K4_hDWsP7m0P2gZ_5JHAFhVnd2Y",
-  authDomain: "stvimpletacao.firebaseapp.com",
-  projectId: "stvimpletacao",
-  storageBucket: "stvimpletacao.firebasestorage.app",
-  messagingSenderId: "734167486178",
-  appId: "1:734167486178:web:1261730912177d76b498bb",
-  measurementId: "G-M5F9YWBTVP"
+  apiKey: "AIzaSyDo8Y-ggdy_uHKSkOJ_60Qre1OSA_WJuAs",
+  authDomain: "stvimplantacao-c52c1.firebaseapp.com",
+  projectId: "stvimplantacao-c52c1",
+  storageBucket: "stvimplantacao-c52c1.firebasestorage.app",
+  messagingSenderId: "725447277302",
+  appId: "1:725447277302:web:225c38d401f73a057e4ad7"
 };
-
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -31,4 +29,4 @@ try {
 }
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const API_BASE_URL = "https://condominiosapi-zqa3bu55yq-uc.a.run.app";
+export const API_BASE_URL = "https://condominiosapi-zw34mt6nba-uc.a.run.app";

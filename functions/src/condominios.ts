@@ -318,4 +318,54 @@ app.delete("/condominios/:id", async (
   }
 });
 
+// ...existing code...
+app.get("/seed-initial-users", async (req: express.Request, res: express.Response) => {
+  const usersToCreate = [
+    { email: "marcos@stv.com.br", password: "@marcos123", role: "ADM" },
+    { email: "lino@stv.com.br", password: "@lino123", role: "MONITORAMENTO" },
+    { email: "lucas@stv.com.br", password: "@lucas123", role: "TECNICO" },
+    { email: "alisson@stv.com.br", password: "@alisson123", role: "ANALISADOR" },
+  ];
+
+  const results: Array<Record<string, unknown>> = [];
+
+  for (const user of usersToCreate) {
+    try {
+      const userRecord = await admin.auth().createUser({
+        email: user.email,
+        password: user.password,
+        emailVerified: true,
+        displayName: `${user.role} - ${user.email.split("@")[0].toUpperCase()}`,
+      });
+
+      await admin.auth().setCustomUserClaims(userRecord.uid, { role: user.role });
+
+      console.log(`[SUCESSO] Usuário ${user.email} criado com role ${user.role}.`);
+      results.push({ email: user.email, status: "CRIADO", uid: userRecord.uid });
+    } catch (error: unknown) {
+      const err = error as { code?: string; message?: string };
+      if (err.code === "auth/email-already-exists") {
+        try {
+          const existingUser = await admin.auth().getUserByEmail(user.email);
+          await admin.auth().setCustomUserClaims(existingUser.uid, { role: user.role });
+
+          console.log(`[ATUALIZADO] Usuário ${user.email} já existia. Role atualizada para ${user.role}.`);
+          results.push({ email: user.email, status: "JÁ EXISTIA (ROLE ATUALIZADA)", uid: existingUser.uid });
+        } catch (updateError) {
+          results.push({ email: user.email, status: "ERRO AO ATUALIZAR", error: String(updateError) });
+        }
+      } else {
+        console.error(`[ERRO] Falha ao criar ${user.email}:`, err);
+        results.push({ email: user.email, status: "ERRO", error: err.message ?? String(err) });
+      }
+    }
+  }
+
+  return res.json({
+    message: "Processo de criação em massa finalizado.",
+    details: results,
+  });
+});
+// ...existing code...
+
 export const condominiosApi = functions.https.onRequest(app);
